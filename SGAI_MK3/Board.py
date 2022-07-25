@@ -293,7 +293,7 @@ class Board:
             return [False, None]
         self.States[i].person.get_bitten()
         return [True, i]
-        #hi
+        #hii
 
     def heal(self, coords: Tuple[int, int]) -> Tuple[bool, int]:
         """
