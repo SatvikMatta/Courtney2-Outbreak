@@ -34,6 +34,7 @@ while running:
     P = PF.run(GameBoard)
 
     if not playerMoved:
+        GameBoard.telemetry = "Your move!"
         if SELF_PLAY:
             if not dummy_player.get_move(GameBoard)[0]:
                 PF.csv_update("data.csv", GameBoard.resources.getCosts(), actions_taken)
@@ -79,7 +80,6 @@ while running:
                     running = False
 
             PF.display_cur_move(take_action)
-            PF.display_telemetry(GameBoard.telemetry)
 
             # Action handling
             if len(take_action) > 1:
@@ -144,5 +144,7 @@ while running:
         GameBoard.update()
 
     # Update the display
+    PF.display_telemetry(GameBoard.telemetry)
     pygame.display.update()
-    pygame.time.wait(75)
+
+    pygame.time.wait(200)
