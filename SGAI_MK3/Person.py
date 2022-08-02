@@ -1,5 +1,5 @@
 import random as rd
-import stable_baselines3 as sb3
+# import stable_baselines3 as sb3
 import numpy as np
 import torch
 
@@ -79,29 +79,29 @@ class Person:
             )
         return False
 
-    def get_best_move(self, gameboard, position):
-        if self.isZombie == False:
-            return "Not avaliable", -100000000
-        else:
-            trained_model = sb3.PPO.load("./saved_zombie_models/ppov2.zip")
-            obs = self._get_obs(position, gameboard)
-            value = trained_model.policy.predict_values(torch.Tensor(np.array([obs])))
-            value = value[0][0]
-            action = trained_model.predict(obs)[0]
-            ACTION_MAPPINGS = {
-                0: "movebiteUp",
-                1: "movebiteDown",
-                2: "movebiteLeft",
-                3: "movebiteRight",
-            }
-            a = self.process(gameboard, position, ACTION_MAPPINGS[action])
-            if a is not None:
-                action_name, pos = a
-            else:
-                action_name = "Not avaliable"
-                value = float("-inf")
-                pos = float("-inf")
-            return action_name, pos, value
+    # def get_best_move(self, gameboard, position):
+    #     if self.isZombie == False:
+    #         return "Not avaliable", -100000000
+    #     else:
+    #         trained_model = sb3.PPO.load("./saved_zombie_models/ppov2.zip")
+    #         obs = self._get_obs(position, gameboard)
+    #         value = trained_model.policy.predict_values(torch.Tensor(np.array([obs])))
+    #         value = value[0][0]
+    #         action = trained_model.predict(obs)[0]
+    #         ACTION_MAPPINGS = {
+    #             0: "movebiteUp",
+    #             1: "movebiteDown",
+    #             2: "movebiteLeft",
+    #             3: "movebiteRight",
+    #         }
+    #         a = self.process(gameboard, position, ACTION_MAPPINGS[action])
+    #         if a is not None:
+    #             action_name, pos = a
+    #         else:
+    #             action_name = "Not avaliable"
+    #             value = float("-inf")
+    #             pos = float("-inf")
+    #         return action_name, pos, value
 
     def process(self, gameb, position, action_name):
         clone = gameb.clone(gameb.States, gameb.player_role)
