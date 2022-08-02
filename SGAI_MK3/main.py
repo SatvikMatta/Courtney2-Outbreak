@@ -77,6 +77,7 @@ while running:
                             if action not in take_action:
                                 take_action.append(action)
                 if event.type == pygame.QUIT:
+                    PF.csv_update("data.csv", GameBoard.resources.getCosts(), actions_taken)
                     running = False
 
             PF.display_cur_move(take_action)
