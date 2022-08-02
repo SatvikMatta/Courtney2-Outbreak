@@ -53,6 +53,7 @@ class Board:
         }
         self.resources = Resources(4)
         self.telemetry = "Your Move"
+        self.record_actions = True
 
     def getSafeEdge(self):
         return self.safeEdge
@@ -230,7 +231,7 @@ class Board:
             and coordinates[0] >= 0
         )
 
-    def clone(self, L: List[State], role: str):
+    def clone(self, L: List[State], role: str, record_actions: bool = False):
         NB = Board(
             (self.rows, self.columns),
             self.player_role,
@@ -238,6 +239,7 @@ class Board:
         NB.States = [state.clone() for state in L]
         NB.player_role = role
         NB.resources = self.resources.clone()
+        NB.record_actions = record_actions
         return NB
 
     def getAdjacentCoords(self, coord) -> List[Tuple[int, int]]:
@@ -337,7 +339,8 @@ class Board:
         if self.isAdjacentTo(coords, False) and self.resources.spendOn("cure"):
             # 80% chance of getting cured (for now, # can be changed)
             chance = 0.8
-            record_actions("curesGiven", actions_taken)
+            if self.record_actions:
+                record_actions("curesGiven", actions_taken)
             if rd.random() < chance:
                 p.get_cured()
             else:
@@ -358,7 +361,8 @@ class Board:
         if self.States[i].person is None or p.isZombie:
             return [False, None]
         if i in self.getSafeEdge() and self.resources.spendOn("vaccinate"):
-            record_actions("vaccinationsGiven", actions_taken)
+            if self.record_actions:
+                record_actions("vaccinationsGiven", actions_taken)
             p.get_vaccinated()
             return [True, i]
         return [False, None]
@@ -370,7 +374,8 @@ class Board:
         if self.isAdjacentTo(coords, False) and self.resources.spendOn("wall"):
             w = Wall()
             self.States[i].wall = w
-            record_actions("wallsCreated", actions_taken)
+            if self.record_actions:
+                record_actions("wallsCreated", actions_taken)
             return [True, i]
         return [False, None]
 

@@ -115,7 +115,7 @@ while running:
                 continue
 
             # Select the destination coordinates
-            print(f"choosing to go with {action} at {move_coord}")
+            # print(f"choosing to go with {action} at {move_coord}")
             GameBoard.telemetry = (
                 f"the AI chose to {action}"  # reset telemetry and add AI move
             )
@@ -137,7 +137,7 @@ while running:
             PF.display_win_screen()
             continue
 
-        print(f"choosing to go with {action} at {move_coord}")
+        # print(f"choosing to go with {action} at {move_coord}")
         # Implement the selected action
         GameBoard.actionToFunction[action](move_coord)
         # Update the board's states
