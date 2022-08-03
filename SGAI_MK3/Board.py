@@ -332,6 +332,8 @@ class Board:
         enough resources, then return [False, None]
         Else, return [True, index]
         """
+        if not self.isValidCoordinate(coords):
+            return [False, None]
         i = self.toIndex(coords)
         p = self.States[i].person
         if self.States[i].person is None or not p.isZombie:
@@ -356,6 +358,8 @@ class Board:
         doesn't have enough resources, then return [False, None]
         Else, return [True, index]
         """
+        if not self.isValidCoordinate(coords):
+            return [False, None]
         i = self.toIndex(coords)
         p = self.States[i].person
         if self.States[i].person is None or p.isZombie:
@@ -371,7 +375,11 @@ class Board:
         i = self.toIndex(coords)
         if not self.isValidCoordinate(coords) or self.States[i].person is not None:
             return [False, None]
-        if self.isAdjacentTo(coords, False) and self.resources.spendOn("wall"):
+        if (
+            self.isAdjacentTo(coords, False)
+            and self.States[i].wall is None
+            and self.resources.spendOn("wall")
+        ):
             w = Wall()
             self.States[i].wall = w
             if self.record_actions:

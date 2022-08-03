@@ -1,7 +1,5 @@
 import random as rd
-# import stable_baselines3 as sb3
 import numpy as np
-import torch
 
 
 class Person:
@@ -57,7 +55,7 @@ class Person:
         if self.turnsVaccinated > 5:
             self.isVaccinated = False
             self.turnsVaccinated = 0
-    
+
     def get_vax_turns_left(self):
         if self.isZombie == False and self.isVaccinated:
             return 6 - self.turnsVaccinated

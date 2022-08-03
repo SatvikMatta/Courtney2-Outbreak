@@ -6,7 +6,7 @@ from constants import *
 from Board import actions_taken
 
 
-SELF_PLAY = True  # whether or not a human will be playing
+SELF_PLAY = False  # whether or not a human will be playing
 player_role = "Government"  # Valid options are "Government" and "Zombie"
 # Create the game board
 GameBoard = Board((ROWS, COLUMNS), player_role)
@@ -20,7 +20,7 @@ playerMoved = False
 enemy_player = None
 if player_role == "Government":
     enemy_player = ZombieMinimaxPlayer()
-    ai_player = GovernmentMinimaxPlayer()
+    ai_player = GovernmentAIPlayer()
     dummy_player = GovernmentPlayer()
 else:
     enemy_player = GovernmentMinimaxPlayer()
