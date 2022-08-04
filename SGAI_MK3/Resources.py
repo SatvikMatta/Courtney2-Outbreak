@@ -8,7 +8,11 @@ class Resources:
 
     def __init__(self, starting_resources: int):
         self.resources = starting_resources
-        self.costs = {"cure": rd.randint(5, 10), "vaccinate": rd.randint(5, 10), "wall": rd.randint(3,10)}
+        self.costs = {
+            "cure": rd.randint(5, 10),
+            "vaccinate": rd.randint(5, 10),
+            "wall": rd.randint(3, 10),
+        }
 
     def spendOn(self, item: str) -> bool:
         """
@@ -29,4 +33,6 @@ class Resources:
         return self.costs
 
     def clone(self):
-        return Resources(self.resources)
+        ret = Resources(self.resources)
+        ret.costs = self.costs
+        return ret

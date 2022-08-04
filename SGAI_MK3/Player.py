@@ -67,7 +67,9 @@ class GovernmentEnvironment:
 
         # coordinates of the first Government player
         self.agentPosition = self.board.indexOf(False)
-        if self.agentPosition == -1:
+        if self.agentPosition == -1 or not self.board.is_move_possible_at(
+            self.agentPosition
+        ):
             self.reset()
 
         # useful for metrics
@@ -142,7 +144,6 @@ class GovernmentEnvironment:
             return "cure", dest_coord
         else:  # wall variation
             dest_coord = list(self.board.toCoord(self.agentPosition))
-            print("before", dest_coord)
             if action_name == "wallUp":
                 dest_coord[1] -= 1
             elif action_name == "wallDown":
@@ -151,129 +152,7 @@ class GovernmentEnvironment:
                 dest_coord[0] += 1
             else:
                 dest_coord[0] -= 1
-            print("after", dest_coord)
             return "wall", dest_coord
-
-    def step(self, action: int):
-        if self.board.States[self.agentPosition].person is None:
-            print("Lost Person before")
-            print("agent position is", self.agentPosition)
-            print("obs is", self._get_obs())
-
-        action_name = GovernmentEnvironment.ACTION_MAPPINGS[action]
-        # print("Before: ", end = str(self.agentPosition))
-        # print()
-        # print(action_name)
-        if "move" in action_name:
-            # print(self.board.get_board())
-            valid, new_pos = self.board.actionToFunction[action_name](
-                self.board.toCoord(self.agentPosition)
-            )
-            if valid:
-                # print(self.board.get_board())
-                # print(self.agentPosition)
-                self.agentPosition = new_pos
-                # print("After: ", end = str(self.agentPosition))
-                # print()
-        elif "vaccinate" in action_name:
-            valid, _ = self.board.actionToFunction[action_name](
-                self.board.toCoord(self.agentPosition)
-            )
-        elif "cure" in action_name:
-            dest_coord = list(self.board.toCoord(self.agentPosition))
-            if action_name == "cureUp":
-                dest_coord[1] -= 1
-            elif action_name == "cureDown":
-                dest_coord[1] += 1
-            elif action_name == "cureRight":
-                dest_coord[0] += 1
-            else:
-                dest_coord[0] -= 1
-            valid, _ = self.board.actionToFunction["cure"](dest_coord)
-        else:  # wall variation
-            dest_coord = list(self.board.toCoord(self.agentPosition))
-            if action_name == "wallUp":
-                dest_coord[1] -= 1
-            elif action_name == "wallDown":
-                dest_coord[1] += 1
-            elif action_name == "wallRight":
-                dest_coord[0] += 1
-            else:
-                dest_coord[0] -= 1
-            valid, _ = self.board.actionToFunction["wall"](dest_coord)
-
-        won = None
-        # do the opposing player's action if the action was valid.
-        if valid:
-            _action, coord = self.enemyPlayer.get_move(self.board)
-            if not _action:
-                self.done = True
-                won = True
-            else:
-                self.board.actionToFunction[_action](coord)
-            self.board.update()
-
-        # see if the game is over
-        # print(self.agentPosition)
-        # print(self.board.get_board())
-        # print(self._get_obs())
-        if self.board.States[self.agentPosition].person is None:
-            print("Lost Person")
-            print("agent position is", self.agentPosition)
-            print("obs is", self._get_obs())
-
-        if self.board.States[self.agentPosition].person.isZombie:  # person was bitten
-            self.done = True
-            won = False
-        if not self.board.is_move_possible_at(self.agentPosition):  # no move possible
-            self.done = True
-        if self.episode_timesteps > self.max_timesteps:
-            self.done = True
-
-        # get obs, reward, done, info
-        obs, reward, done, info = (
-            self._get_obs(),
-            self._get_reward(action_name, valid, won),
-            self._get_done(),
-            self._get_info(),
-        )
-
-        # update the metrics
-        self.episode_reward += reward
-        if not valid:
-            self.episode_invalid_actions += 1
-            self.total_invalid_moves += 1
-        self.episode_timesteps += 1
-        self.max_number_of_government = max(
-            self.board.num_people(), self.max_number_of_government
-        )
-        self.total_timesteps += 1
-
-        # return the obs, reward, done, info
-        return obs, reward, done, info
-
-    def _get_info(self):
-        return {}
-
-    def _get_done(self):
-        return self.done
-
-    def _get_reward(self, action_name: str, was_valid: bool, won: bool):
-        """
-        Gonna try to return reward between [-1, 1]
-        This fits w/i tanh and sigmoid ranges
-        """
-        if not was_valid:
-            return -1
-        if won is True:
-            return 1
-        if won is False:
-            return -0.5
-        if "vaccinate" in action_name:
-            return 0.3
-        if "cure" in action_name:
-            return 0.7
-        return -0.01  # this is the case where it was move
 
     def _get_obs(self):
         """
@@ -296,17 +175,6 @@ class GovernmentEnvironment:
 NUM_ACTIONS = 13
 
 
-def apply_invalid_mask(logits, env: GovernmentEnvironment):
-    # pass in logits; this would be before doing logprobabilities
-    # applies an invalid action mask
-    action_mask = tf.constant([env.get_invalid_action_mask()], dtype=tf.bool)
-    invalid_values = tf.constant([[tf.float32.min] * NUM_ACTIONS], dtype=tf.float32)
-
-    assert invalid_values.shape == logits.shape
-    logits = tf.where(action_mask, logits, invalid_values)
-    return logits
-
-
 def mlp(x, sizes, activation=tf.tanh, output_activation=None):
     # Build a feedforward neural network
     for size in sizes[:-1]:
@@ -315,10 +183,32 @@ def mlp(x, sizes, activation=tf.tanh, output_activation=None):
 
 
 # Sample action from actor
-def sample_action(observation, env):
-    logits = actor(observation)
-    logits = apply_invalid_mask(logits, env)
-    action = tf.squeeze(tf.random.categorical(logits, 1), axis=1)
+@tf.function
+def apply_invalid_mask(logits, action_mask):
+    # pass in logits; this would be before doing logprobabilities
+    # applies an invalid action mask
+    invalid_values = tf.constant([[tf.float32.min] * NUM_ACTIONS], dtype=tf.float32)
+
+    logits = tf.where(action_mask, logits, invalid_values)
+    return logits
+
+
+@tf.function
+def get_best_action(observation, invalid_action_mask):
+    logits = actor(observation, training=False)
+    logits = apply_invalid_mask(logits, invalid_action_mask)
+    action = tf.argmax(tf.squeeze(logits))
+
+    # prioritize curing
+    if logits[0][9] != tf.float32.min:
+        action = tf.constant([9], dtype=tf.int64)
+    elif logits[0][10] != tf.float32.min:
+        action = tf.constant([10], dtype=tf.int64)
+    elif logits[0][11] != tf.float32.min:
+        action = tf.constant([11], dtype=tf.int64)
+    elif logits[0][12] != tf.float32.min:
+        action = tf.constant([12], dtype=tf.int64)
+
     return logits, action
 
 
@@ -445,12 +335,10 @@ class GovernmentAIPlayer(GovernmentPlayer):
                 temp_env.copy(board, idx)
                 obs = temp_env._get_obs()
                 obs = np.reshape(obs, (1, 40))
-                logits = actor(obs)
-                apply_invalid_mask(logits, temp_env)
-                action = tf.argmax(tf.squeeze(logits))
-                print(action)
-                action = action.numpy()
-                value = critic(obs)
+                mask = tf.cast([temp_env.get_invalid_action_mask()], dtype=tf.bool)
+                logits, action = get_best_action(obs, mask)
+                action = int(action.numpy())
+                value = critic(obs, training=False)
                 print(value)
                 value = value.numpy()[0]
 

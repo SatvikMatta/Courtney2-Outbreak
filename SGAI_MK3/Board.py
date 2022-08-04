@@ -240,6 +240,7 @@ class Board:
         NB.player_role = role
         NB.resources = self.resources.clone()
         NB.record_actions = record_actions
+        NB.safeEdge = self.safeEdge.copy()
         return NB
 
     def getAdjacentCoords(self, coord) -> List[Tuple[int, int]]:
@@ -401,24 +402,18 @@ class Board:
         if total == -1:
             total = rd.randint(7, ((self.rows * self.columns) / 3))
         poss = []
-        for x in range(len(self.States)):
-            r = rd.randint(0, 100)
-            if r < 60 and self.population < total:
-                p = Person(False)
-                self.States[x].person = p
-                self.population = self.population + 1
-                poss.append(x)
-            else:
-                self.States[x].person = None
+        while len(poss) != total:
+            r = rd.randint(0, len(self.States) - 1)
+            while r in poss:
+                r = rd.randint(0, len(self.States) - 1)
+            poss.append(r)
+            self.States[r].person = Person(False)
+            self.population += 1
 
         # make zombies
-        used = []
-        for x in range(num_zombies):
-            s = rd.randint(0, len(poss) - 1)
-            while s in used:
-                s = rd.randint(0, len(poss) - 1)
-            self.States[poss[s]].person.isZombie = True
-            used.append(s)
+        for _ in range(num_zombies):
+            s = poss.pop(rd.randint(0, len(poss) - 1))
+            self.States[s].person.isZombie = True
 
     def update(self):
         """
